@@ -12,36 +12,36 @@
  *
  * ============================================================================
  */
-
-
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "args.h"
-#include "colors.h"
+#include "store.h"
 
+static void on_connection_update(ConnectionState_t* new_connection, ConnectionState_t* old_connection) {
+    printf("on_connection_update: %d\n", new_connection->connected);
+    if (new_connection->connected == false) {
+        ConnectionState_t* old_conn = STORE_mutate(&STORE_get()->connection);
+        old_conn->connected = true;
+    }
+    uint8_t* feedback = STORE_mutate(&STORE_get()->feedback);
+    *feedback = 50;
+}
 
+static void on_feedback_update(uint8_t* new_feedback, uint8_t* old_feedback) {
+    printf("on_feedback_update\n");
+}
 
-int
-main (int argc, char* argv[])
-{
+int main (void) {
+    
+    STORE_subcribe(&STORE_get()->connection, on_connection_update);
+    STORE_subcribe(&STORE_get()->feedback, on_feedback_update);
 
-    /* Read command line options */
-    options_t options;
-    options_parser(argc, argv, &options);
+    ConnectionState_t* old_conn = STORE_mutate(&STORE_get()->connection);
+    old_conn->connected = false;
 
+    printf("---> run\n");
 
-#ifdef DEBUG
-    fprintf(stdout, BLUE "Command line options:\n" NO_COLOR);
-    fprintf(stdout, BROWN "help: %d\n" NO_COLOR, options.help);
-    fprintf(stdout, BROWN "version: %d\n" NO_COLOR, options.version);
-    fprintf(stdout, BROWN "use colors: %d\n" NO_COLOR, options.use_colors);
-    fprintf(stdout, BROWN "filename: %s\n" NO_COLOR, options.file_name);
-#endif
-
-
-    /* Do your magic here :) */
-
+    while (STORE_run()) {;}
 
     return EXIT_SUCCESS;
 }
